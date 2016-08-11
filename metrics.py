@@ -15,12 +15,17 @@ def k_get(k_type):
     return [item['metadata']['name'] for item in res.json()['items']]
 
 def metrics(k_type):
-    for item in k_get(k_type):
+    for name in k_get(k_type):
         for m in measurements:
-            res = client.query(
-                'SELECT mean("value") FROM "%s" WHERE "type" = \'%s\' AND time > now() - %s GROUP BY time(%s)' % (
-                    m, k_type, '15m', '1m'))
-            yield res
+            res = client.query('''
+                SELECT MEAN("value"), MAX("value")
+                FROM "%s"
+                WHERE "type" = \'%s\'
+                AND time > now() - %s GROUP BY time(%s)
+                ''' % (m, k_type, '15m', '1m'))
+            for r in itertools.chain(*res):
+                r.update(type=k_type, name=name)
+                yield r
 
 for r in itertools.chain(metrics('node'), metrics('pod')):
     print(r)

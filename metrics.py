@@ -10,6 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from decouple import config, Csv
 from influxdb import InfluxDBClient
 
+requests.packages.urllib3.disable_warnings()
 
 parser = argparse.ArgumentParser(description='Kubernetes metrics dumper')
 parser.add_argument('--schedule', action='store_true',
@@ -25,7 +26,6 @@ kube_token = config('KUBE_TOKEN', '')
 if not kube_token and kube_token_file:
     with open(kube_token_file) as f:
         kube_token = f.read()
-
 
 # INFLUXDB SETTINGS
 
@@ -45,7 +45,7 @@ def k_get(k_type):
     headers = {}
     if kube_token:
         headers['Authorization'] = 'Bearer ' + kube_token
-    res = requests.get(url)
+    res = requests.get(url, headers=headers, verify=False)
     res.raise_for_status()
     return [item['metadata']['name'] for item in res.json()['items']]
 

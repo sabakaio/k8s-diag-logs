@@ -1,0 +1,26 @@
+language: python
+sudo: required
+
+python:
+  - 3.5
+
+services:
+  - docker
+
+script:
+  - docker build -t sabaka/k8s-diag-logs .
+  - >
+    if [ -n "$TRAVIS_TAG" ]; then
+      docker tag sabaka/k8s-diag-logs "sabaka/k8s-diag-logs:$TRAVIS_TAG"
+    fi
+
+after_success:
+  - docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+  - >
+    if [ "$TRAVIS_BRANCH" == "master" ]; then
+    docker push sabaka/k8s-diag-logs;
+    fi
+  - >
+    if [ -n "$TRAVIS_TAG" ]; then
+    docker push "sabaka/k8s-diag-logs:$TRAVIS_TAG";
+    fi

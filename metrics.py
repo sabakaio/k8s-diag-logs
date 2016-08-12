@@ -58,8 +58,8 @@ def metrics(k_type):
                 FROM "%s"
                 WHERE "type" = \'%s\'
                 AND %s = \'%s\'
-                AND time > now() - %dm GROUP BY time(%dm)
-                ''' % (m, k_type, assoc[k_type], name, time_frame, time_frame))
+                AND time > now() - %dm GROUP BY time(1m)
+                ''' % (m, k_type, assoc[k_type], name, time_frame))
             for r in itertools.chain(*res):
                 r.update(measurement=m, type=k_type, name=name)
                 yield r

@@ -1,0 +1,6 @@
+## busybox<->docker integration ##
+::ctrlaltdel:/bin/kill -QUIT 1
+::restart:/bin/false
+##################################
+
+::respawn:/usr/bin/gosu nobody:nobody sh -c 'exec python3 -bb /opt/metrics.py --schedule'

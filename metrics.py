@@ -38,6 +38,9 @@ client = InfluxDBClient.from_DSN(influxdb_dsn, timeout=5)
 
 # APPLICATION
 
+assoc = {"node": "nodename", "pod": "pod_name" }
+items = {}
+
 def k_get(k_type):
     url = kube_api.strip('/') + '/api/v1/' + k_type.strip('/') + 's'
     headers = {}
@@ -45,24 +48,73 @@ def k_get(k_type):
         headers['Authorization'] = 'Bearer ' + kube_token
     res = requests.get(url)
     res.raise_for_status()
-    return [item['metadata']['name'] for item in res.json()['items']]
+    return res.json()['items']
 
+def k_get_names(k_type):
+    return [item['metadata']['name'] for item in items[k_type]]
+
+def k_get_limit(k_type, k_inst):
+    if k_type == "node":
+        for item in items[k_type]:
+            if item['metadata']['name'] == k_inst:
+                return convert_to_byte(item['status']['capacity']['memory'])
+    if k_type == "pod":
+        for item in items[k_type]:
+            if item['metadata']['name'] == k_inst:
+                limits_sum = 0
+                for c in item['spec']['containers']:
+                    if ('resources' in c) and \
+                        ('limits' in c['resources']) and \
+                        ('memory' in c['resources']['limits']):
+                            limits_sum += convert_to_byte(c['resources']['limits']['memory'])
+                    else:
+                        limits_sum = 0
+                        break
+                if limits_sum > 0:
+                    return limits_sum
+                else:
+                    return(k_get_limit('node', item['spec']['nodeName']))
+
+bi_in_bytes = {
+        'Ki': 1024,
+        'Mi': 1024*1024,
+        'Gi': 1024*1024*1024
+        }
+
+def convert_to_byte(BiBy):
+    suf = BiBy[-2:]
+    if (suf) in bi_in_bytes:
+        return int(BiBy.strip(suf)) * bi_in_bytes[suf]
+    else:
+        return BiBy
 
 def metrics(k_type):
-    for name in k_get(k_type):
+    for name in k_get_names(k_type):
         for m in measurements:
             res = client.query('''
-                SELECT MEAN("value"), MAX("value")
+                SELECT MEAN("value"), PERCENTILE("value", 90)
                 FROM "%s"
                 WHERE "type" = \'%s\'
-                AND time > now() - %dm GROUP BY time(%s)
-                ''' % (m, k_type, time_frame, '1m'))
+                AND %s = \'%s\'
+                AND time > now() - %dm GROUP BY time(%dm)
+                ''' % (m, k_type, assoc[k_type], name, time_frame, time_frame))
             for r in itertools.chain(*res):
-                r.update(type=k_type, name=name)
-                yield r
+                if r.get("mean") and r.get("percentile"):
+                    r.update(measurement=m, type=k_type, name=name)
+                    if m == "memory/usage":
+                        r.update(measurement="memory/usage_rate")
+                        limit = k_get_limit(k_type, name)
+                        r.update(mean=round(r.get("mean")*100/limit, 2),
+                            percentile=round(r.get("percentile")*100/limit, 2))
+                    r.update(mean=round(r.get("mean"),2),
+                        percentile=round(r.get("percentile"),2))
+                    yield r
+                break
 
 
 def dump():
+    items['node'] = k_get('node')
+    items['pod'] = k_get('pod')
     for r in itertools.chain(metrics('node'), metrics('pod')):
         print(json.dumps(r))
 

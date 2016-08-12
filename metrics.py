@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import asyncio
+import json
 import os
 import itertools
 
@@ -47,7 +48,7 @@ def metrics(k_type):
 
 def dump():
     for r in itertools.chain(metrics('node'), metrics('pod')):
-        print(r)
+        print(json.dumps(r))
 
 
 if __name__ == '__main__':

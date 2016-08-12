@@ -38,6 +38,8 @@ client = InfluxDBClient.from_DSN(influxdb_dsn, timeout=5)
 
 # APPLICATION
 
+assoc = {"node": "nodename", "pod": "pod_name" }
+
 def k_get(k_type):
     url = kube_api.strip('/') + '/api/v1/' + k_type.strip('/') + 's'
     headers = {}
@@ -52,13 +54,14 @@ def metrics(k_type):
     for name in k_get(k_type):
         for m in measurements:
             res = client.query('''
-                SELECT MEAN("value"), MAX("value")
+                SELECT MEAN("value"), PERCENTILE("value", 90)
                 FROM "%s"
                 WHERE "type" = \'%s\'
-                AND time > now() - %dm GROUP BY time(%s)
-                ''' % (m, k_type, time_frame, '1m'))
+                AND %s = \'%s\'
+                AND time > now() - %dm GROUP BY time(%dm)
+                ''' % (m, k_type, assoc[k_type], name, time_frame, time_frame))
             for r in itertools.chain(*res):
-                r.update(type=k_type, name=name)
+                r.update(measurement=m, type=k_type, name=name)
                 yield r
 
 

@@ -16,17 +16,33 @@ parser.add_argument('--schedule', action='store_true',
                     help='Schedule periodic metrics dumb based on METRICS_FRAME env variable')
 
 
-kubernetes_api = config('K8S_API', 'http://localhost:8001')
+# KUBERNETES SETTINGS
+
+kube_api = config('KUBE_API', 'http://localhost:8001')
+kube_token_file = config('KUBE_TOKEN_FILE', '')
+kube_token = config('KUBE_TOKEN', '')
+
+if not kube_token and kube_token_file:
+    with open(kube_token_file) as f:
+        kube_token = f.read()
+
+
+# INFLUXDB SETTINGS
+
 influxdb_dsn = config('INFLUXDB_DSN', 'influxdb://localhost:8086/k8s')
 measurements = config('MEASUREMENTS', 'cpu/usage_rate,memory/usage', cast=Csv())
 time_frame = config('METRICS_FRAME', 15, cast=int)  # in minutes
 
-
 client = InfluxDBClient.from_DSN(influxdb_dsn, timeout=5)
 
 
+# APPLICATION
+
 def k_get(k_type):
-    url = kubernetes_api.strip('/') + '/api/v1/' + k_type.strip('/') + 's'
+    url = kube_api.strip('/') + '/api/v1/' + k_type.strip('/') + 's'
+    headers = {}
+    if kube_token:
+        headers['Authorization'] = 'Bearer ' + kube_token
     res = requests.get(url)
     res.raise_for_status()
     return [item['metadata']['name'] for item in res.json()['items']]

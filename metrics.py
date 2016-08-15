@@ -16,6 +16,7 @@ requests.packages.urllib3.disable_warnings()
 parser = argparse.ArgumentParser(description='Kubernetes metrics dumper')
 parser.add_argument('--schedule', action='store_true',
                     help='Schedule periodic metrics dumb based on METRICS_FRAME env variable')
+parser.add_argument('--format', help='Output format (see `str.format` doc)')
 
 
 # KUBERNETES SETTINGS
@@ -66,19 +67,23 @@ def metrics(k_type):
                 yield r
 
 
-def dump():
+def dump(fmt):
     for r in itertools.chain(metrics('node'), metrics('pod')):
-        print(json.dumps(r))
+        if fmt:
+            print(fmt.format(**r))
+        else:
+            print(json.dumps(r))
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    dump_kwargs = {'fmt': args.format}
     # Show metrics immideately
-    dump()
+    dump(**dump_kwargs)
     # Schedule text calls
     if args.schedule:
         scheduler = AsyncIOScheduler({'apscheduler.timezone': 'UTC'})
-        scheduler.add_job(dump, 'interval', minutes=time_frame)
+        scheduler.add_job(dump, 'interval', minutes=time_frame, kwargs=dump_kwargs)
         scheduler.start()
 
         # Execution will block here until Ctrl+C is pressed.

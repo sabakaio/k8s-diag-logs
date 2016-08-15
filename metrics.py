@@ -77,7 +77,7 @@ if __name__ == '__main__':
     dump()
     # Schedule text calls
     if args.schedule:
-        scheduler = AsyncIOScheduler()
+        scheduler = AsyncIOScheduler({'apscheduler.timezone': 'UTC'})
         scheduler.add_job(dump, 'interval', minutes=time_frame)
         scheduler.start()
 

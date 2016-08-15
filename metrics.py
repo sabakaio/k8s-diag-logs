@@ -10,6 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from decouple import config, Csv
 from influxdb import InfluxDBClient
 
+# suppress self-signed certificate warnings
 requests.packages.urllib3.disable_warnings()
 
 parser = argparse.ArgumentParser(description='Kubernetes metrics dumper')

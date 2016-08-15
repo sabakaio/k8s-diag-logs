@@ -13,10 +13,12 @@ from influxdb import InfluxDBClient
 # suppress self-signed certificate warnings
 requests.packages.urllib3.disable_warnings()
 
+output_format = config('OUTPUT_FORMAT', '')
+
 parser = argparse.ArgumentParser(description='Kubernetes metrics dumper')
 parser.add_argument('--schedule', action='store_true',
                     help='Schedule periodic metrics dumb based on METRICS_FRAME env variable')
-parser.add_argument('--format', help='Output format (see `str.format` doc)')
+parser.add_argument('--format', default=output_format, help='Output format (see `str.format` doc)')
 
 
 # KUBERNETES SETTINGS

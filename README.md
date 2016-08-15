@@ -1,7 +1,7 @@
 # Kubernetes diagnostic logs
 
 It should be run on *Kubernetes* cluster with *InfluxDB*, e.g. on [ansible-kube](https://github.com/sabakaio/ansible-kube) setup.
-The script goes over a list of *nodes* and a list of *pods*, get stats for mesurements 
+The script goes over a list of *nodes* and a list of *pods*, get stats for mesurements
 (`cpu/usage_rate` and `memory/usage` by default) for 15 minues (by default) time frame and write data in *stdout* in *json* format.
 
 ## Requirements
@@ -18,6 +18,10 @@ These is the only one script `./metrics.py`. It dumps all diagnostic logs to *st
 ## Configuration
 
 All configuration could be made with environment variables
+
+### General
+
+- `OUTPUT_FORMAT` output format, e.g. `{time}|{type}|{name}|{measurement}|{mean}|{percentile}`. Could be also set using `--format` option. Default output is `JSON` encoded data.
 
 ### Kubernetes
 

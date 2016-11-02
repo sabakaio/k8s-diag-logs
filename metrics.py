@@ -35,6 +35,7 @@ if not kube_token and kube_token_file:
 influxdb_dsn = config('INFLUXDB_DSN', 'influxdb://localhost:8086/k8s')
 measurements = config('MEASUREMENTS', 'cpu/usage_rate,memory/usage', cast=Csv())
 time_frame = config('METRICS_FRAME', 15, cast=int)  # in minutes
+group_by = config('METRICS_GROUP_BY', 1, cast=int)  # in minutes
 
 client = InfluxDBClient.from_DSN(influxdb_dsn, timeout=5)
 
@@ -62,8 +63,8 @@ def metrics(k_type):
                 FROM "%s"
                 WHERE "type" = \'%s\'
                 AND %s = \'%s\'
-                AND time > now() - %dm GROUP BY time(1m)
-                ''' % (m, k_type, assoc[k_type], name, time_frame))
+                AND time > now() - %dm GROUP BY time(%dm)
+                ''' % (m, k_type, assoc[k_type], name, time_frame, group_by))
             for r in itertools.chain(*res):
                 r.update(measurement=m, type=k_type, name=name)
                 yield r

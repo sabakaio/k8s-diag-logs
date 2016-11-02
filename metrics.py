@@ -2,7 +2,6 @@
 import argparse
 import asyncio
 import json
-import os
 import itertools
 
 import requests
@@ -42,7 +41,8 @@ client = InfluxDBClient.from_DSN(influxdb_dsn, timeout=5)
 
 # APPLICATION
 
-assoc = {"node": "nodename", "pod": "pod_name" }
+assoc = {"node": "nodename", "pod": "pod_name"}
+
 
 def k_get(k_type):
     url = kube_api.strip('/') + '/api/v1/' + k_type.strip('/') + 's'
